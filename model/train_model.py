@@ -4,14 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-
-train_data = datasets.CIFAR10(root="data", train=True, download=True, transform=transform)
-test_data = datasets.CIFAR10(root="data", train=False, download=True, transform=transform)
-
-train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_data, batch_size=32)
+import json
 
 class CNN(nn.Module):
     def __init__(self):
@@ -30,32 +23,45 @@ class CNN(nn.Module):
         x = self.fc2(x)
         return x
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def train_model():
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 
-model = CNN().to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+    train_data = datasets.CIFAR10(root="data", train=True, download=True, transform=transform)
+    test_data = datasets.CIFAR10(root="data", train=False, download=True, transform=transform)
 
-epochs = 30
-for epoch in range(epochs):
-    running_loss = 0.0
-    for images, labels in train_loader:
-        images, labels = images.to(device), labels.to(device)
+    train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
+    test_loader = DataLoader(test_data, batch_size=32)
 
-        optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = CNN().to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-        running_loss += loss.item()
+    epochs = 30
+    for epoch in range(epochs):
+        running_loss = 0.0
+        for images, labels in train_loader:
+            images, labels = images.to(device), labels.to(device)
 
-    print(f"Epoch {epoch+1}, Loss: {running_loss / len(train_loader)}")
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+
+        print(f"Epoch {epoch+1}, Loss: {running_loss / len(train_loader)}")
     
-torch.save(model.state_dict(), "model.pth")
+    torch.save(model.state_dict(), "model.pth")
 
-# Save class names
-import json
-with open("classes.json", "w") as f:
-    json.dump(train_data.classes, f)
+    # Save class names
+    with open("classes.json", "w") as f:
+        json.dump(train_data.classes, f)
+    
+    return model
+
+# Only train if this file is run directly
+if __name__ == "__main__":
+    train_model()
 

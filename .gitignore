@@ -1,3 +1,4 @@
 data/
 model/data/
-**/data/
+**/data/CIFAR-10-images/
+CIFAR-10-images/
